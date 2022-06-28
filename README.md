@@ -1,4 +1,4 @@
 # Template
 Template repository
 
-![](doc/exampleImage.png)
+![](doc/labellingInterfaceProgress.png)
