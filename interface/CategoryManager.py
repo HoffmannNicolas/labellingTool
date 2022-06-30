@@ -1,6 +1,6 @@
 
 import json
-from os.path import exists
+from os.path import exists, isdir
 
 class CategoryManager :
 
@@ -21,13 +21,15 @@ class CategoryManager :
             with open(saveFile) as file :
                 self.categories = json.loads(file.read())
         else :
-            self.saveToFolder(folderPath)
+            if (isdir(folderPath)) :
+                self.saveToFolder(folderPath)
 
 
     def saveToFolder(self, folderPath) :
-        saveFile = f"{folderPath}/CategoryManager.json"
-        with open(saveFile, 'w') as file :
-            json.dump(self.categories, file, indent=4)
+        if (isdir(folderPath)) :
+            saveFile = f"{folderPath}/CategoryManager.json"
+            with open(saveFile, 'w') as file :
+                json.dump(self.categories, file, indent=4)
 
 
     def __str__(self) :

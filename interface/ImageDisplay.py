@@ -97,16 +97,16 @@ class ImageDisplay :
         self.boundingBoxesReferences = []
 
 
-    def updateImageIndex(self, event) :
+    def updateImageIndex(self, event=None) :
         if (self.n_images <= 0 and self.imageIndex.get() < 0) :
             self.imageIndex.set(0)
-        if (self.n_images > 0 and self.imageIndex.get() < 0) :
+        if (self.n_images > 0 and self.imageIndex.get() <= 0) :
             self.imageIndex.set(1)
         if (self.imageIndex.get() > self.n_images) :
             self.imageIndex.set(self.n_images)
         self.updateImage()
 
-    def updateImagePath(self, event) :
+    def updateImagePath(self, event=None) :
         newImagePath = self.imagePath.get()
         if (newImagePath in self.imagePaths) :
             i = self.imagePaths.index(newImagePath)
@@ -116,13 +116,15 @@ class ImageDisplay :
         self.updateImage()
 
     def updateImage(self) :
+        self.window.focus()
         # Load image
         if (self.n_images <= 0) :
             print("No image to display")
             self.image = None
             return
         try :
-            imagePath = self.imagePaths[self.imageIndex.get() - 1]
+            index = max(0, self.imageIndex.get() - 1) # In case self.imageIndex is 0, we do not want the last image
+            imagePath = self.imagePaths[index]
             self.loadedImage = cv2.imread(imagePath)
         except :
             print(f"[Warning] : Cannot read image '{imagePath}'")
@@ -177,6 +179,7 @@ class ImageDisplay :
 
     def loadFolder(self) :
         """ Load a database from its path """
+        self.window.focus()
         extensions = ["png", "jpg", "jpeg"]
         self.imagePaths = []
         for extension in extensions :
@@ -188,13 +191,14 @@ class ImageDisplay :
             self.imageIndex.set(1)
         else :
             self.imageIndex.set(0)
-        self.updateImage()
 
         # Update managers to the new folder
         self.categoryManager.loadFromFolder(self.folderPath.get())
         self.boundingBoxManager.loadFromFolder(self.folderPath.get())
         self.categoryDisplay.updateTable()
-        self.boundingBoxDisplay.updateTable(self.imagePaths[self.imageIndex.get()])
+        if (len(self.imagePaths) > self.imageIndex.get()) :
+            self.boundingBoxDisplay.updateTable(self.imagePaths[self.imageIndex.get()])
+        self.updateImage()
 
 
     def computeImagePercentages(self, x_pixel, y_pixel) :

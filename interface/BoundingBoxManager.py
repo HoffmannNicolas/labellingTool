@@ -1,5 +1,5 @@
 
-from os.path import exists
+from os.path import exists, isdir
 
 from random import randint, uniform
 from random import randint
@@ -36,13 +36,15 @@ class BoundingBoxManager :
             with open(saveFile) as file :
                 self.boundingBoxes = json.loads(file.read())
         else :
-            self.saveToFolder(folderPath)
+            if (isdir(folderPath)) :
+                self.saveToFolder(folderPath)
 
 
     def saveToFolder(self, folderPath) :
-        saveFile = f"{folderPath}/BoundingBoxManager.json"
-        with open(saveFile, 'w') as file :
-            json.dump(self.boundingBoxes, file, indent=4)
+        if (isdir(folderPath)) :
+            saveFile = f"{folderPath}/BoundingBoxManager.json"
+            with open(saveFile, 'w') as file :
+                json.dump(self.boundingBoxes, file, indent=4)
 
 
     def __str__(self) :

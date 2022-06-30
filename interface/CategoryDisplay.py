@@ -51,6 +51,7 @@ class CategoryDisplay :
         self.table.pack()
 
 
+
     def updateTable(self) :
 
         for row in self.table.get_children():
