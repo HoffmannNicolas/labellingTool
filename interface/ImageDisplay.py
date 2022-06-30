@@ -14,15 +14,14 @@ import numpy as np
 import glob
 
 from BoundingBoxManager import BoundingBoxManager
+from CategoryManager import CategoryManager
 
 
 class ImageDisplay :
 
-
     """ Area where the image is displayed and boundingBoxes can be drawn with the mouse """
 
-
-    def __init__(self, window, boundingBoxManager, displayWidth=700, displayHeight=700) :
+    def __init__(self, window, boundingBoxManager, boundingBoxDisplay, categoryManager, categoryDisplay, displayWidth=700, displayHeight=700) :
         """
         <window> : The Tkinter window where the map should be displayed
         <displayWidth> : Width of the display
@@ -32,6 +31,9 @@ class ImageDisplay :
         self.frame = Frame(window)
         self.frame.pack()
         self.boundingBoxManager = boundingBoxManager
+        self.boundingBoxDisplay = boundingBoxDisplay
+        self.categoryManager = categoryManager
+        self.categoryDisplay = categoryDisplay
         self.displayWidth = displayWidth
         self.displayHeight = displayHeight
 
@@ -46,32 +48,33 @@ class ImageDisplay :
         self.canvas.bind("<ButtonPress-1>", self.leftClickPress)
         self.canvas.bind("<ButtonRelease-1>", self.leftClickRelease)
         self.canvas.bind("<B1-Motion>", self.drag)
+        self.canvas.create_rectangle(1, 1, self.displayWidth, self.displayHeight)
 
         # Folder selection
-        self.loadButton = tk.Button(self.canvas, text="Load Folder", width=8, command=self.load, bg="white")
-        self.loadButtonWindow = self.canvas.create_window(3, 0, window=self.loadButton, anchor="nw")
+        self.loadButton = tk.Button(self.canvas, text="Load Folder", width=8, command=self.loadFolder, bg="white")
+        self.loadButtonWindow = self.canvas.create_window(3, 3, window=self.loadButton, anchor="nw")
         self.folderLabel = tk.Label(self.frame, text=":")
-        self.canvas.create_window(95, 5, window=self.folderLabel, anchor="nw")
+        self.canvas.create_window(95, 6, window=self.folderLabel, anchor="nw")
         self.folderPath = tk.StringVar(self.frame, value="/home/nicolas/labellingTool/data") # "/path/to/image/folder/"
         self.folderPathWindow = tk.Entry(self.window, width=73, textvariable=self.folderPath)
         self.folderPathWindow.bind('<Return>', self.updateFolderPath) # Bind update to return presses
-        self.canvas.create_window(105, 5, window=self.folderPathWindow, anchor="nw")
+        self.canvas.create_window(105, 6, window=self.folderPathWindow, anchor="nw")
         self.imagePaths = []
 
         # Image selection
         self.imageLabel = tk.Label(self.frame, text="Image :")
-        self.canvas.create_window(3, self.topHeightMargin / 2, window=self.imageLabel, anchor="nw")
+        self.canvas.create_window(3, 5 + self.topHeightMargin / 2, window=self.imageLabel, anchor="nw")
         self.imageIndex = tk.IntVar(self.frame, value=0)
         self.imageIndexWindow = tk.Entry(self.window, width=7, textvariable=self.imageIndex, justify="center")
         self.imageIndexWindow.bind('<Return>', self.updateImageIndex) # Bind update to return presses
-        self.canvas.create_window(58, self.topHeightMargin / 2, window=self.imageIndexWindow, anchor="nw")
+        self.canvas.create_window(58, 5 + self.topHeightMargin / 2, window=self.imageIndexWindow, anchor="nw")
         self.n_images = 0
         self.over = tk.Label(self.frame, text=f"/ {self.n_images}")
-        self.canvas.create_window(120, self.topHeightMargin / 2, window=self.over, anchor="nw")
+        self.canvas.create_window(120, 5 + self.topHeightMargin / 2, window=self.over, anchor="nw")
         self.imagePath = tk.StringVar(self.frame, value="/path/to/image/img.png")
         self.imagePathWindow = tk.Entry(self.window, width=65, textvariable=self.imagePath)
         self.imagePathWindow.bind('<Return>', self.updateImagePath) # Bind update to return presses
-        self.canvas.create_window(169, self.topHeightMargin / 2, window=self.imagePathWindow, anchor="nw")
+        self.canvas.create_window(169, 5 + self.topHeightMargin / 2, window=self.imagePathWindow, anchor="nw")
 
         # Checkboxes
         self.deform = tk.IntVar()
@@ -130,12 +133,12 @@ class ImageDisplay :
 
         # Resize image
         if (self.deform.get() == 1) :
-            newWidth = self.imageWidth
-            newHeight = self.imageHeight
+            newWidth = self.imageWidth - 2
+            newHeight = self.imageHeight - 1
         else :
             height, width, n_channel = self.loadedImage.shape # Height and width inverted here
-            w_ratio = self.imageWidth / width
-            h_ratio = self.imageHeight / height
+            w_ratio = (self.imageWidth - 2) / width
+            h_ratio = (self.imageHeight - 1) / height
             ratio = min(w_ratio, h_ratio)
             newWidth = int(width * ratio)
             newHeight = int(height * ratio)
@@ -143,8 +146,8 @@ class ImageDisplay :
 
         # Display image at proper position
         self.image = ImageTk.PhotoImage(image=Image.fromarray(self.loadedImage))
-        x_position = int((self.imageWidth - newWidth) / 2)
-        y_position = self.topHeightMargin + int((self.imageHeight - newHeight) / 2)
+        x_position = 1 + int((self.imageWidth - newWidth) / 2)
+        y_position = 1 + self.topHeightMargin + int((self.imageHeight - newHeight) / 2)
         self.view = self.canvas.create_image(x_position, y_position, anchor="nw", image=self.image)
 
         self.drawBoundingBoxes()
@@ -156,8 +159,8 @@ class ImageDisplay :
 
         if (self.imageName in list(self.boundingBoxManager.boundingBoxes.keys())) :
             for boundingBox in self.boundingBoxManager.boundingBoxes[self.imageName] :
-                left_pixel, top_pixel = self.computeImagePixels(boundingBox.left_percentage, boundingBox.top_percentage)
-                right_pixel, bottom_pixel = self.computeImagePixels(boundingBox.right_percentage, boundingBox.bottom_percentage)
+                left_pixel, top_pixel = self.computeImagePixels(boundingBox['left_percentage'], boundingBox['top_percentage'])
+                right_pixel, bottom_pixel = self.computeImagePixels(boundingBox['right_percentage'], boundingBox['bottom_percentage'])
                 bboxRef = self.canvas.create_rectangle(
                     left_pixel,
                     top_pixel,
@@ -170,9 +173,9 @@ class ImageDisplay :
 
 
     def updateFolderPath(self, event) :
-        self.load()
+        self.loadFolder()
 
-    def load(self) :
+    def loadFolder(self) :
         """ Load a database from its path """
         extensions = ["png", "jpg", "jpeg"]
         self.imagePaths = []
@@ -186,6 +189,12 @@ class ImageDisplay :
         else :
             self.imageIndex.set(0)
         self.updateImage()
+
+        # Update managers to the new folder
+        self.categoryManager.loadFromFolder(self.folderPath.get())
+        self.boundingBoxManager.loadFromFolder(self.folderPath.get())
+        self.categoryDisplay.updateTable()
+        self.boundingBoxDisplay.updateTable(self.imagePaths[self.imageIndex.get()])
 
 
     def computeImagePercentages(self, x_pixel, y_pixel) :
@@ -248,13 +257,12 @@ class ImageDisplay :
         self.bboxWannabe_1 = self.canvas.create_rectangle(left_pixel, top_pixel, right_pixel, bottom_pixel, width=3, outline="black")
         self.bboxWannabe_2 = self.canvas.create_rectangle(left_pixel, top_pixel, right_pixel, bottom_pixel, width=1, outline="white")
 
-
     def leftClickRelease(self, event) :
         self.canvas.delete(self.bboxWannabe_1)
         self.canvas.delete(self.bboxWannabe_2)
 
         left_percentage, top_percentage, right_percentage, bottom_percentage = self.getBoundingBoxCoordinate_percentage()
-        self.boundingBoxManager.addBoundingBox(self.imageName, left_percentage, top_percentage, right_percentage, bottom_percentage)
+        self.boundingBoxManager.addBoundingBox(self.imageName, left_percentage, top_percentage, right_percentage, bottom_percentage, category=self.categoryManager.selectedCategory)
 
         self.drawBoundingBoxes()
 
@@ -265,9 +273,12 @@ if __name__ == "__main__" :
     window.title("Detector")
     window.geometry('1300x800')
 
+    categoryManager = CategoryManager()
+    categoryDisplay = CategoryDisplay(window, categoryManager)
     bboxManager = BoundingBoxManager()
-    imageDisplay = ImageDisplay(window, bboxManager)
-    imageDisplay.frame.place(x=400, y=50)
+    bboxDisplay = BoundingBoxDisplay(window, bboxManager)
+    imageDisplay = ImageDisplay(window, bboxManager, bboxDisplay, categoryManager, categoryDisplay)
+    imageDisplay.frame.place(x=40, y=50)
 
     exitButton = tk.Button(window, text='close window', width=10, command=window.destroy)
     exitButton.pack()
