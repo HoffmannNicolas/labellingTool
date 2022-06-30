@@ -30,6 +30,14 @@ class BoundingBoxManager :
         })
 
 
+    def deleteLastBbox(self, imagePath) :
+        if (self.boundingBoxes[imagePath] is None) :
+            return
+        if (len(self.boundingBoxes[imagePath]) <= 0) :
+            return
+        _ = self.boundingBoxes[imagePath].pop(-1)
+
+
     def loadFromFolder(self, folderPath) :
         saveFile = f"{folderPath}/BoundingBoxManager.json"
         if exists(saveFile) :

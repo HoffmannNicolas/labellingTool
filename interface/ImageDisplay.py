@@ -92,8 +92,6 @@ class ImageDisplay :
 
         self.loadedImage = None
 
-        self.imageName = None
-
         self.boundingBoxesReferences = []
 
 
@@ -119,7 +117,6 @@ class ImageDisplay :
         self.window.focus()
         # Load image
         if (self.n_images <= 0) :
-            print("No image to display")
             self.image = None
             return
         try :
@@ -131,7 +128,6 @@ class ImageDisplay :
 
         # Update display
         self.imagePath.set(imagePath)
-        self.imageName = imagePath.split("/")[-1].split(".")[0]
 
         # Resize image
         if (self.deform.get() == 1) :
@@ -151,7 +147,7 @@ class ImageDisplay :
         x_position = 1 + int((self.imageWidth - newWidth) / 2)
         y_position = 1 + self.topHeightMargin + int((self.imageHeight - newHeight) / 2)
         self.view = self.canvas.create_image(x_position, y_position, anchor="nw", image=self.image)
-
+        self.boundingBoxDisplay.updateTable(self.imagePath.get())
         self.drawBoundingBoxes()
 
     def drawBoundingBoxes(self) :
@@ -159,19 +155,32 @@ class ImageDisplay :
         for boundingBoxReference in self.boundingBoxesReferences :
             self.canvas.delete(boundingBoxReference)
 
-        if (self.imageName in list(self.boundingBoxManager.boundingBoxes.keys())) :
-            for boundingBox in self.boundingBoxManager.boundingBoxes[self.imageName] :
+        if (self.imagePath.get() in list(self.boundingBoxManager.boundingBoxes.keys())) :
+            for boundingBox in self.boundingBoxManager.boundingBoxes[self.imagePath.get()] :
                 left_pixel, top_pixel = self.computeImagePixels(boundingBox['left_percentage'], boundingBox['top_percentage'])
                 right_pixel, bottom_pixel = self.computeImagePixels(boundingBox['right_percentage'], boundingBox['bottom_percentage'])
-                bboxRef = self.canvas.create_rectangle(
+                if (boundingBox["category"] is None) :
+                    color = "black"
+                else :
+                    color = "#%02x%02x%02x" % tuple(boundingBox["category"]['color_rgb'])
+                outerRectangle = self.canvas.create_rectangle(
+                    left_pixel,
+                    top_pixel,
+                    right_pixel,
+                    bottom_pixel,
+                    width=3,
+                    outline="black"
+                )
+                innerRectangle = self.canvas.create_rectangle(
                     left_pixel,
                     top_pixel,
                     right_pixel,
                     bottom_pixel,
                     width=1,
-                    outline="black"
+                    outline=color
                 )
-                self.boundingBoxesReferences.append(bboxRef)
+                self.boundingBoxesReferences.append(outerRectangle)
+                self.boundingBoxesReferences.append(innerRectangle)
 
 
     def updateFolderPath(self, event) :
@@ -196,8 +205,6 @@ class ImageDisplay :
         self.categoryManager.loadFromFolder(self.folderPath.get())
         self.boundingBoxManager.loadFromFolder(self.folderPath.get())
         self.categoryDisplay.updateTable()
-        if (len(self.imagePaths) > self.imageIndex.get()) :
-            self.boundingBoxDisplay.updateTable(self.imagePaths[self.imageIndex.get()])
         self.updateImage()
 
 
@@ -258,17 +265,23 @@ class ImageDisplay :
         if (self.bboxWannabe_1 is not None) :
             self.canvas.delete(self.bboxWannabe_1)
             self.canvas.delete(self.bboxWannabe_2)
+
+        if (self.categoryDisplay.selectedCategory is None) :
+            innerColor = "white"
+        else :
+            innerColor = "#%02x%02x%02x" % tuple(self.categoryDisplay.selectedCategory['color_rgb'])
+
         self.bboxWannabe_1 = self.canvas.create_rectangle(left_pixel, top_pixel, right_pixel, bottom_pixel, width=3, outline="black")
-        self.bboxWannabe_2 = self.canvas.create_rectangle(left_pixel, top_pixel, right_pixel, bottom_pixel, width=1, outline="white")
+        self.bboxWannabe_2 = self.canvas.create_rectangle(left_pixel, top_pixel, right_pixel, bottom_pixel, width=1, outline=innerColor)
 
     def leftClickRelease(self, event) :
         self.canvas.delete(self.bboxWannabe_1)
         self.canvas.delete(self.bboxWannabe_2)
 
         left_percentage, top_percentage, right_percentage, bottom_percentage = self.getBoundingBoxCoordinate_percentage()
-        self.boundingBoxManager.addBoundingBox(self.imageName, left_percentage, top_percentage, right_percentage, bottom_percentage, category=self.categoryManager.selectedCategory)
-
+        self.boundingBoxManager.addBoundingBox(self.imagePath.get(), left_percentage, top_percentage, right_percentage, bottom_percentage, category=self.categoryDisplay.selectedCategory)
         self.drawBoundingBoxes()
+        self.boundingBoxDisplay.updateTable(self.imagePath.get())
 
 
 if __name__ == "__main__" :

@@ -10,8 +10,6 @@ from  tkinter import ttk
 from random import randint
 from CategoryManager import CategoryManager, testCategoryManager
 
-from pprint import pprint
-
 class BoundingBoxDisplay :
 
     """ The table displaying the content of a BoundingBoxManager, as a tkinter frame """
@@ -65,15 +63,21 @@ class BoundingBoxDisplay :
             # No bbox for this image, yet
             return
 
+
         for i, bbox in enumerate(self.bboxManager.boundingBoxes[imagePath]) :
-            name = f"{bbox['category']['name']}"
+            if (bbox["category"] is None) :
+                categoryName = "None"
+                categoryColor_rgb = [128, 128, 128]
+            else :
+                categoryName = f"{bbox['category']['name']}"
+                categoryColor_rgb = bbox['category']['color_rgb']
             left = f"{round(bbox['left_percentage'], 3)}"
             top = f"{round(bbox['top_percentage'], 3)}"
             right = f"{round(bbox['right_percentage'], 3)}"
             bottom = f"{round(bbox['bottom_percentage'], 3)}"
-            tag = (f"category_{bbox['category']['name']}")
-            self.table.insert(parent='', index='end', text='', values=(name, left, top, right, bottom, i), tags=tag)
-            self.table.tag_configure(f"category_{bbox['category']['name']}", background ="#%02x%02x%02x" % tuple(bbox['category']['color_rgb']))
+            tag = (f"category_{categoryName}")
+            self.table.insert(parent='', index='end', text='', values=(categoryName, left, top, right, bottom, i), tags=tag)
+            self.table.tag_configure(f"category_{categoryName}", background ="#%02x%02x%02x" % tuple(categoryColor_rgb))
 
 
 

@@ -26,6 +26,7 @@ class CategoryDisplay :
 
         self.table = ttk.Treeview(self.frame, yscrollcommand=self.scroll.set)
         self.table.pack()
+        self.table.bind('<<TreeviewSelect>>', self.on_select)
 
         self.scroll.config(command=self.table.yview)
         self.scroll.config(command=self.table.xview)
@@ -50,19 +51,23 @@ class CategoryDisplay :
 
         self.table.pack()
 
+        self.selectedCategory = None
 
 
     def updateTable(self) :
-
         for row in self.table.get_children():
             self.table.delete(row)
-
         for i, category in enumerate(self.categoryManager.categories) :
             self.table.insert(parent='', index='end', text='', values=(f"{category['name']}", f"{category['color_rgb']}", f"{i}"), tags=(f"category_{i}"))
             self.table.tag_configure(f"category_{i}", background ="#%02x%02x%02x" % tuple(category['color_rgb']))
 
 
-
+    def on_select(self, event):
+        focus = self.table.focus()
+        item = self.table.item(focus, "values")
+        self.selectedCategory = self.categoryManager.categories[int(item[-1])]
+        print("self.selectedCategory  :", self.selectedCategory)
+        print(item)
 
 if __name__ == "__main__" :
 

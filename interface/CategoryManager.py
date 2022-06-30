@@ -7,7 +7,6 @@ class CategoryManager :
     """ Manages all categories shared between all objects of the interface """
 
     def __init__(self, categories=[]) :
-        self.selectedCategory = None
         self.categories = categories
 
 

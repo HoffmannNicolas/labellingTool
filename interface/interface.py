@@ -39,9 +39,13 @@ class DetectionLabellingInterface :
         self.imageDisplay.frame.place(x=300, y=3)
         self.bboxDisplay.frame.place(x=1050, y=3)
 
-        self.saveButton = tk.Button(self.frame, text="[S]ave", width=10, command=self.save)
-        self.saveButton.pack()
-        self.saveButton.place(x=300, y=750)
+        self.saveBoxesButton = tk.Button(self.frame, text="[S]ave Boxes", width=10, command=self.saveBoxes)
+        self.saveBoxesButton.pack()
+        self.saveBoxesButton.place(x=300, y=750)
+
+        self.undoButton = tk.Button(self.frame, text="[U]ndo", width=10, command=self.undo)
+        self.undoButton.pack()
+        self.undoButton.place(x=200, y=750)
 
         self.previousImage_x = 150
         self.previousImage_h = 400
@@ -52,7 +56,7 @@ class DetectionLabellingInterface :
 
         self.nextImage_x = 1200
         self.nextImage_h = 400
-        self.nextImageButton = tk.Button(self.frame, text="Next Image", width=11, command=self.nextImage)
+        self.nextImageButton = tk.Button(self.frame, text="Next Image\n[Space]", width=11, command=self.nextImage)
         self.nextImageButton.pack()
         self.nextImageButton.place(x=self.nextImage_x, y=self.nextImage_h, anchor="center")
         self.drawArrow([self.nextImage_x - 50, self.nextImage_h], [self.nextImage_x + 50, self.nextImage_h])
@@ -61,7 +65,9 @@ class DetectionLabellingInterface :
         self.exitButton.pack()
         self.exitButton.place(x=800, y=750)
 
-        self.window.bind("<s>", self.save)
+        self.window.bind("<s>", self.saveBoxes)
+        self.window.bind("<u>", self.undo)
+        self.window.bind("<space>", self.nextImage)
 
         """
         # Checkboxes
@@ -94,20 +100,27 @@ class DetectionLabellingInterface :
             self.canvas.create_line(p1[0], p1[1], p2[0], p2[1])
 
 
-    def previousImage(self) :
+    def previousImage(self, event=None) :
         return self.changeImageIndex(change=-1)
 
-    def nextImage(self) :
+    def nextImage(self, event=None) :
         return self.changeImageIndex(change=1)
 
     def changeImageIndex(self, change=1) :
         newIndex = self.imageDisplay.imageIndex.get() + change
         self.imageDisplay.imageIndex.set(newIndex)
         self.imageDisplay.updateImageIndex()
+        self.bboxDisplay.updateTable(self.imageDisplay.imagePath.get())
 
-    def save(self, event=None) :
+    def saveBoxes(self, event=None) :
         self.bboxManager.saveToFolder(self.imageDisplay.folderPath.get())
         print("Bounding Boxes saved")
+
+    def undo(self, event=None) :
+        self.bboxManager.deleteLastBbox(self.imageDisplay.imagePath.get())
+        self.bboxDisplay.updateTable(self.imageDisplay.imagePath.get())
+        self.imageDisplay.drawBoundingBoxes()
+        print("Undone")
 
 
 if __name__ == "__main__" :
