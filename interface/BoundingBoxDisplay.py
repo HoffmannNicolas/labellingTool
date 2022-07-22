@@ -14,10 +14,11 @@ class BoundingBoxDisplay :
 
     """ The table displaying the content of a BoundingBoxManager, as a tkinter frame """
 
-    def __init__(self, window, bboxManager) :
+    def __init__(self, window, bboxManager, bboxTuner=None) :
 
         self.window = window
         self.bboxManager = bboxManager
+        self.bboxTuner = bboxTuner
 
         self.frame = Frame(window)
         self.frame.pack()
@@ -28,6 +29,8 @@ class BoundingBoxDisplay :
 
         self.table = ttk.Treeview(self.frame, yscrollcommand=self.scroll.set)
         self.table.pack()
+        self.table.bind('<<TreeviewSelect>>', self.on_select)
+        self.i_selectedBbox = None
 
         self.scroll.config(command=self.table.yview)
         self.scroll.config(command=self.table.xview)
@@ -53,8 +56,13 @@ class BoundingBoxDisplay :
 
         self.table.pack()
 
+        self.currentlyShownImagePath = None
 
-    def updateTable(self, imagePath) :
+
+    def updateTable(self, imagePath=None) :
+
+        if (imagePath is None) :
+            imagePath = self.currentlyShownImagePath
 
         for row in self.table.get_children():
             self.table.delete(row)
@@ -79,6 +87,37 @@ class BoundingBoxDisplay :
             self.table.insert(parent='', index='end', text='', values=(categoryName, left, top, right, bottom, i), tags=tag)
             self.table.tag_configure(f"category_{categoryName}", background ="#%02x%02x%02x" % tuple(categoryColor_rgb))
 
+        imageBboxes = self.bboxManager.boundingBoxes[imagePath]
+        if (self.i_selectedBbox is None) :
+            if (len(imageBboxes) > 0) :
+                self.i_selectedBbox = 0
+            else :
+                self.i_selectedBbox = None
+        self.currentlyShownImagePath = imagePath
+
+
+    def on_select(self, event=None) :
+        focus = self.table.focus()
+        item = self.table.item(focus, "values")
+        self.i_selectedBbox = int(item[-1])
+        if (self.bboxTuner is not None) :
+            self.bboxTuner.updateImage()
+
+    def moveToNextBbox(self, event=None) :
+        print(self.i_selectedBbox)
+        if (self.currentlyShownImagePath is None) :
+            self.i_selectedBbox = None
+        else :
+            imageBboxes = self.bboxManager.boundingBoxes[self.currentlyShownImagePath]
+            n_bboxes = len(imageBboxes)
+            print(n_bboxes)
+            if (n_bboxes <= 0) :
+                self.i_selectedBbox = None
+            else :
+                self.i_selectedBbox = (self.i_selectedBbox + 1) % n_bboxes
+                print(self.i_selectedBbox)
+        self.updateTable()
+        print(self.i_selectedBbox)
 
 
 if __name__ == "__main__" :

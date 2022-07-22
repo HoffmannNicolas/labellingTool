@@ -21,7 +21,7 @@ class ImageDisplay :
 
     """ Area where the image is displayed and boundingBoxes can be drawn with the mouse """
 
-    def __init__(self, window, boundingBoxManager, boundingBoxDisplay, categoryManager, categoryDisplay, displayWidth=700, displayHeight=700) :
+    def __init__(self, window, boundingBoxManager, boundingBoxDisplay, categoryManager, categoryDisplay, bboxTuner=None, displayWidth=700, displayHeight=700) :
         """
         <window> : The Tkinter window where the map should be displayed
         <displayWidth> : Width of the display
@@ -34,6 +34,7 @@ class ImageDisplay :
         self.boundingBoxDisplay = boundingBoxDisplay
         self.categoryManager = categoryManager
         self.categoryDisplay = categoryDisplay
+        self.bboxTuner = bboxTuner
         self.displayWidth = displayWidth
         self.displayHeight = displayHeight
 
@@ -206,6 +207,8 @@ class ImageDisplay :
         self.boundingBoxManager.loadFromFolder(self.folderPath.get())
         self.categoryDisplay.updateTable()
         self.updateImage()
+        if (self.bboxTuner is not None) :
+            self.bboxTuner.updateImage()
 
 
     def computeImagePercentages(self, x_pixel, y_pixel) :

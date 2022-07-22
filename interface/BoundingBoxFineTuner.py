@@ -13,12 +13,17 @@ import numpy as np
 
 import glob
 
+from CategoryManager import CategoryManager, testCategoryManager
+from BoundingBoxManager import BoundingBoxManager
+from BoundingBoxDisplay import BoundingBoxDisplay
+
+from random import randint, uniform
 
 class BoundingBoxFineTuner :
 
     """ Precisely finetune bounding boxes """
 
-    def __init__(self, window, displayWidth=400, displayHeight=400, bboxIncrement=0.01) :
+    def __init__(self, window, bboxDisplay, imageDisplay=None, displayWidth=400, displayHeight=400, bboxIncrement=0.02) :
         """
         <window> : The Tkinter window where the map should be displayed
         <displayWidth> : Width of the display
@@ -27,8 +32,12 @@ class BoundingBoxFineTuner :
         self.window = window
         self.frame = Frame(window)
         self.frame.pack()
+
+        self.imageDisplay = imageDisplay
         self.displayWidth = displayWidth
         self.displayHeight = displayHeight
+
+        self.bboxDisplay = bboxDisplay
 
         self.bboxIncrement = bboxIncrement
 
@@ -37,60 +46,69 @@ class BoundingBoxFineTuner :
         self.canvas.create_rectangle(1, 1, self.displayWidth, self.displayHeight)
         self.canvas.focus()
 
-        self.canvas.bind("<Left>", self.lengthenBboxHorizontally)
-        self.canvas.bind("<Right>", self.shortenBboxHorizontally)
-        self.canvas.bind("<Down>", self.lengthenBboxVertically)
-        self.canvas.bind("<Up>", self.shortenBboxVertically)
+        self.canvas.bind("<Right>", self.lengthenBboxHorizontally)
+        self.canvas.bind("<Left>", self.shortenBboxHorizontally)
+        self.canvas.bind("<Up>", self.lengthenBboxVertically)
+        self.canvas.bind("<Down>", self.shortenBboxVertically)
 
-        self.canvas.bind("<d>", self.moveBboxLeft)
-        self.canvas.bind("<D>", self.moveBboxLeft)
-        self.canvas.bind("<q>", self.moveBboxRight)
-        self.canvas.bind("<Q>", self.moveBboxRight)
-        self.canvas.bind("<s>", self.moveBboxUp)
-        self.canvas.bind("<S>", self.moveBboxUp)
-        self.canvas.bind("<z>", self.moveBboxDown)
-        self.canvas.bind("<Z>", self.moveBboxDown)
+        self.canvas.bind("<q>", self.moveBboxLeft)
+        self.canvas.bind("<Q>", self.moveBboxLeft)
+        self.canvas.bind("<d>", self.moveBboxRight)
+        self.canvas.bind("<D>", self.moveBboxRight)
+        self.canvas.bind("<z>", self.moveBboxUp)
+        self.canvas.bind("<Z>", self.moveBboxUp)
+        self.canvas.bind("<s>", self.moveBboxDown)
+        self.canvas.bind("<S>", self.moveBboxDown)
 
         self.canvas.focus_set() # How does this interract with other stuff ?
 
-        self.imagePath = None
         self.bbox = None
 
         self.canvas.pack(pady=10)
 
-        self.imagePath = "/home/nicolas/labellingTool/data/aaJPGlabel.jpeg"
-        self.bbox = {
-            "left_percentage": 0.23452768729641693,
-            "top_percentage": 0.21009771986970685,
-            "right_percentage": 0.30944625407166126,
-            "bottom_percentage": 0.2899022801302932,
-            "category": {
-                "name": "Yellow",
-                "color_rgb": [
-                    255,
-                    255,
-                    0
-                ]
-            }
-        }
+    def getBbox(self) :
+        i_bbox = self.bboxDisplay.i_selectedBbox
+        if (i_bbox is None) :
+            return None
+        imagePath = self.bboxDisplay.currentlyShownImagePath
+        if (imagePath is None) :
+            return None
+        try :
+            return self.bboxDisplay.bboxManager.boundingBoxes[imagePath][i_bbox]
+        except :
+            return None
+    def bboxIsValid(self) :
+        return self.getBbox() is not None
+    def getBboxLeft(self) : return self.getBbox()["left_percentage"]
+    def getBboxRight(self) : return self.getBbox()["right_percentage"]
+    def getBboxTop(self) : return self.getBbox()["top_percentage"]
+    def getBboxBottom(self) : return self.getBbox()["bottom_percentage"]
+    def setBboxLeft(self, val) : self.getBbox()["left_percentage"] = val
+    def setBboxRight(self, val) : self.getBbox()["right_percentage"] = val
+    def setBboxTop(self, val) : self.getBbox()["top_percentage"] = val
+    def setBboxBottom(self, val) : self.getBbox()["bottom_percentage"] = val
+
 
 
     def updateImage(self) :
         try :
-            self.image = cv2.imread(self.imagePath)
+            self.image = cv2.imread(self.bboxDisplay.currentlyShownImagePath)
         except :
             print(f"[Warning] : Cannot read image '{imagePath}'")
             return
 
+        if not(self.bboxIsValid()) :
+            return
+
         imageHeight, imageWidth, n_channels = self.image.shape
 
-        horizontalRange = self.bbox["right_percentage"] - self.bbox["left_percentage"]
-        verticalRange = self.bbox["bottom_percentage"] - self.bbox["top_percentage"]
+        horizontalRange = self.getBboxRight() - self.getBboxLeft()
+        verticalRange = self.getBboxBottom() - self.getBboxTop()
 
-        imageLeftPercentage = max(0, self.bbox["left_percentage"] - 0.1 * horizontalRange)
-        imageRightPercentage = min(1, self.bbox["right_percentage"] + 0.1 * horizontalRange)
-        imageBottomPercentage = min(1, self.bbox["bottom_percentage"] + 0.1 * verticalRange)
-        imageTopPercentage = max(0, self.bbox["top_percentage"] - 0.1 * verticalRange)
+        imageLeftPercentage = max(0, self.getBboxLeft() - 0.1 * horizontalRange)
+        imageRightPercentage = min(1, self.getBboxRight() + 0.1 * horizontalRange)
+        imageBottomPercentage = min(1, self.getBboxBottom() + 0.1 * verticalRange)
+        imageTopPercentage = max(0, self.getBboxTop() - 0.1 * verticalRange)
 
         imageLeftPixel = int(imageLeftPercentage * imageWidth)
         imageRightPixel = int(imageRightPercentage * imageWidth)
@@ -109,63 +127,84 @@ class BoundingBoxFineTuner :
             newProp = (proportion - minProportion) / (maxProportion - minProportion)
             return max(min(newProp, 1), 0)
 
-        bboxLeftPixel_onScreen = int(1 + (self.displayWidth - 2) * updateProp(self.bbox["left_percentage"], imageLeftPercentage, imageRightPercentage))
-        bboxRightPixel_onScreen = int((self.displayWidth - 2) * updateProp(self.bbox["right_percentage"], imageLeftPercentage, imageRightPercentage))
-        bboxBottomPixel_onScreen = int((self.displayHeight - 2) * updateProp(self.bbox["bottom_percentage"], imageTopPercentage, imageBottomPercentage))
-        bboxTopPixel_onScreen = int(1 + (self.displayHeight - 2) * updateProp(self.bbox["top_percentage"], imageTopPercentage, imageBottomPercentage))
+        bboxLeftPixel_onScreen = int(1 + (self.displayWidth - 2) * updateProp(self.getBboxLeft(), imageLeftPercentage, imageRightPercentage))
+        bboxRightPixel_onScreen = int((self.displayWidth - 2) * updateProp(self.getBboxRight(), imageLeftPercentage, imageRightPercentage))
+        bboxBottomPixel_onScreen = int((self.displayHeight - 2) * updateProp(self.getBboxBottom(), imageTopPercentage, imageBottomPercentage))
+        bboxTopPixel_onScreen = int(1 + (self.displayHeight - 2) * updateProp(self.getBboxTop(), imageTopPercentage, imageBottomPercentage))
 
         self.canvas.create_rectangle(bboxLeftPixel_onScreen, bboxTopPixel_onScreen, bboxRightPixel_onScreen, bboxBottomPixel_onScreen, width=3)
-        self.canvas.create_rectangle(bboxLeftPixel_onScreen, bboxTopPixel_onScreen, bboxRightPixel_onScreen, bboxBottomPixel_onScreen, outline="#%02x%02x%02x" % tuple(self.bbox["category"]['color_rgb']))
-
+        color = None
+        bbox = self.getBbox()
+        if (bbox is not None) :
+            category = bbox["category"]
+            if (category is not None) :
+                color = "#%02x%02x%02x" % tuple(category['color_rgb'])
+        self.canvas.create_rectangle(bboxLeftPixel_onScreen, bboxTopPixel_onScreen, bboxRightPixel_onScreen, bboxBottomPixel_onScreen, outline=color)
 
     def shortenBboxHorizontally(self, event=None) :
-        bboxHorizontalRange = self.bbox["right_percentage"] - self.bbox["left_percentage"]
-        self.bbox["right_percentage"] -= max(0, self.bboxIncrement * bboxHorizontalRange)
-        self.bbox["left_percentage"] += min(1, self.bboxIncrement * bboxHorizontalRange)
+        bboxHorizontalRange = self.getBboxRight() - self.getBboxLeft()
+        self.setBboxRight(max(0, self.getBboxRight() - self.bboxIncrement * bboxHorizontalRange))
+        self.setBboxLeft(min(1, self.getBboxLeft() + self.bboxIncrement * bboxHorizontalRange))
         self.updateImage()
+        self.bboxDisplay.updateTable(self.bboxDisplay.currentlyShownImagePath)
+        if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
+
 
     def lengthenBboxHorizontally(self, event=None) :
-        bboxHorizontalRange = self.bbox["right_percentage"] - self.bbox["left_percentage"]
-        self.bbox["right_percentage"] += min(1, self.bboxIncrement * bboxHorizontalRange)
-        self.bbox["left_percentage"] -= max(0, self.bboxIncrement * bboxHorizontalRange)
+        bboxHorizontalRange = self.getBboxRight() - self.getBboxLeft()
+        self.setBboxRight(min(1, self.getBboxRight() + self.bboxIncrement * bboxHorizontalRange))
+        self.setBboxLeft(max(0, self.getBboxLeft() - self.bboxIncrement * bboxHorizontalRange))
         self.updateImage()
+        self.bboxDisplay.updateTable(self.bboxDisplay.currentlyShownImagePath)
+        if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def shortenBboxVertically(self, event=None) :
-        bboxVerticalRange = self.bbox["bottom_percentage"] - self.bbox["top_percentage"]
-        self.bbox["top_percentage"] += min(1, self.bboxIncrement * bboxVerticalRange)
-        self.bbox["bottom_percentage"] -= max(0, self.bboxIncrement * bboxVerticalRange)
+        bboxVerticalRange = self.getBboxBottom() - self.getBboxTop()
+        self.setBboxTop(min(1, self.getBboxTop() + self.bboxIncrement * bboxVerticalRange))
+        self.setBboxBottom(max(0, self.getBboxBottom() - self.bboxIncrement * bboxVerticalRange))
         self.updateImage()
+        self.bboxDisplay.updateTable(self.bboxDisplay.currentlyShownImagePath)
+        if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def lengthenBboxVertically(self, event=None) :
-        bboxVerticalRange = self.bbox["bottom_percentage"] - self.bbox["top_percentage"]
-        self.bbox["top_percentage"] -= max(0, self.bboxIncrement * bboxVerticalRange)
-        self.bbox["bottom_percentage"] += min(1, self.bboxIncrement * bboxVerticalRange)
+        bboxVerticalRange = self.getBboxBottom() - self.getBboxTop()
+        self.setBboxTop(max(0, self.getBboxTop() - self.bboxIncrement * bboxVerticalRange))
+        self.setBboxBottom(min(1, self.getBboxBottom() + self.bboxIncrement * bboxVerticalRange))
         self.updateImage()
+        self.bboxDisplay.updateTable(self.bboxDisplay.currentlyShownImagePath)
+        if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def moveBboxUp(self, event=None) :
-        bboxVerticalRange = self.bbox["bottom_percentage"] - self.bbox["top_percentage"]
-        self.bbox["top_percentage"] -= max(0, self.bboxIncrement * bboxVerticalRange)
-        self.bbox["bottom_percentage"] -= max(0, self.bboxIncrement * bboxVerticalRange)
+        bboxVerticalRange = self.getBboxBottom() - self.getBboxTop()
+        self.setBboxTop(max(0, self.getBboxTop() - self.bboxIncrement * bboxVerticalRange))
+        self.setBboxBottom(max(0, self.getBboxBottom() - self.bboxIncrement * bboxVerticalRange))
         self.updateImage()
+        self.bboxDisplay.updateTable(self.bboxDisplay.currentlyShownImagePath)
+        if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def moveBboxDown(self, event=None) :
-        bboxVerticalRange = self.bbox["bottom_percentage"] - self.bbox["top_percentage"]
-        self.bbox["top_percentage"] += min(1, self.bboxIncrement * bboxVerticalRange)
-        self.bbox["bottom_percentage"] += min(1, self.bboxIncrement * bboxVerticalRange)
+        bboxVerticalRange = self.getBboxBottom() - self.getBboxTop()
+        self.setBboxTop(min(1, self.getBboxTop() + self.bboxIncrement * bboxVerticalRange))
+        self.setBboxBottom(min(1, self.getBboxBottom() + self.bboxIncrement * bboxVerticalRange))
         self.updateImage()
+        self.bboxDisplay.updateTable(self.bboxDisplay.currentlyShownImagePath)
+        if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def moveBboxLeft(self, event=None) :
-        bboxHorizontalRange = self.bbox["right_percentage"] - self.bbox["left_percentage"]
-        self.bbox["right_percentage"] -= max(0, self.bboxIncrement * bboxHorizontalRange)
-        self.bbox["left_percentage"] -= max(0, self.bboxIncrement * bboxHorizontalRange)
+        bboxHorizontalRange = self.getBboxRight() - self.getBboxLeft()
+        self.setBboxRight(max(0, self.getBboxRight() - self.bboxIncrement * bboxHorizontalRange))
+        self.setBboxLeft(max(0, self.getBboxLeft() - self.bboxIncrement * bboxHorizontalRange))
         self.updateImage()
+        self.bboxDisplay.updateTable(self.bboxDisplay.currentlyShownImagePath)
+        if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def moveBboxRight(self, event=None) :
-        bboxHorizontalRange = self.bbox["right_percentage"] - self.bbox["left_percentage"]
-        self.bbox["right_percentage"] += min(1, self.bboxIncrement * bboxHorizontalRange)
-        self.bbox["left_percentage"] += min(1, self.bboxIncrement * bboxHorizontalRange)
+        bboxHorizontalRange = self.getBboxRight() - self.getBboxLeft()
+        self.setBboxRight(min(1, self.getBboxRight() + self.bboxIncrement * bboxHorizontalRange))
+        self.setBboxLeft(min(1, self.getBboxLeft() + self.bboxIncrement * bboxHorizontalRange))
         self.updateImage()
-
+        self.bboxDisplay.updateTable(self.bboxDisplay.currentlyShownImagePath)
+        if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
 
 if __name__ == "__main__" :
@@ -174,7 +213,17 @@ if __name__ == "__main__" :
     window.title("BBoxFineTuner")
     window.geometry('1300x800')
 
-    bboxTuner = BoundingBoxFineTuner(window)
+    categoryManager = testCategoryManager()
+    bboxManager = BoundingBoxManager()
+    for _ in range(100) :
+        category = categoryManager.categories[randint(0, len(categoryManager.categories)) - 1]
+        bboxManager.addBoundingBox("/home/nicolas/labellingTool/data/aaJPGlabel.jpeg", uniform(0, 100), uniform(0, 100), uniform(0, 100), uniform(0, 100), category=category)
+    for _ in range(100) :
+        bboxManager.addBoundingBox("/home/nicolas/labellingTool/data/aaJPGlabel.jpeg", uniform(0, 100), uniform(0, 100), uniform(0, 100), uniform(0, 100), category=categoryManager.categories[0])
+
+    bboxDisplay = BoundingBoxDisplay(window, bboxManager)
+
+    bboxTuner = BoundingBoxFineTuner(window, bboxDisplay)
     bboxTuner.frame.place(x=40, y=50)
 
 

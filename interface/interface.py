@@ -9,6 +9,7 @@ from CategoryDisplay import CategoryDisplay
 
 from BoundingBoxManager import BoundingBoxManager
 from BoundingBoxDisplay import BoundingBoxDisplay
+from BoundingBoxFineTuner import BoundingBoxFineTuner
 
 
 class DetectionLabellingInterface :
@@ -31,15 +32,19 @@ class DetectionLabellingInterface :
 
         self.bboxManager = BoundingBoxManager()
         self.bboxDisplay = BoundingBoxDisplay(self.frame, self.bboxManager)
+        self.bboxTuner = BoundingBoxFineTuner(self.frame, self.bboxDisplay)
+        self.bboxDisplay.bboxTuner = self.bboxTuner
         # bboxDisplay.updateTable("imagePath")
 
-        self.imageDisplay = ImageDisplay(self.frame, self.bboxManager, self.bboxDisplay, self.categoryManager, self.categoryDisplay)
+        self.imageDisplay = ImageDisplay(self.frame, self.bboxManager, self.bboxDisplay, self.categoryManager, self.categoryDisplay, bboxTuner=self.bboxTuner)
+        self.bboxTuner.imageDisplay = self.imageDisplay
 
         self.categoryDisplay.frame.place(x=3, y=3)
         self.imageDisplay.frame.place(x=300, y=3)
         self.bboxDisplay.frame.place(x=1050, y=3)
+        self.bboxTuner.frame.place(x=1050, y=370)
 
-        self.saveBoxesButton = tk.Button(self.frame, text="[S]ave Boxes", width=10, command=self.saveBoxes)
+        self.saveBoxesButton = tk.Button(self.frame, text="S[a]ve Boxes", width=10, command=self.saveBoxes)
         self.saveBoxesButton.pack()
         self.saveBoxesButton.place(x=300, y=750)
 
@@ -55,7 +60,7 @@ class DetectionLabellingInterface :
         self.drawArrow([self.previousImage_x + 50, self.previousImage_h], [self.previousImage_x - 50, self.previousImage_h])
 
         self.nextImage_x = 1200
-        self.nextImage_h = 400
+        self.nextImage_h = 300
         self.nextImageButton = tk.Button(self.frame, text="Next Image\n[Space]", width=11, command=self.nextImage)
         self.nextImageButton.pack()
         self.nextImageButton.place(x=self.nextImage_x, y=self.nextImage_h, anchor="center")
@@ -65,9 +70,25 @@ class DetectionLabellingInterface :
         self.exitButton.pack()
         self.exitButton.place(x=800, y=750)
 
-        self.window.bind("<s>", self.saveBoxes)
+        self.window.bind("<a>", self.saveBoxes)
         self.window.bind("<u>", self.undo)
-        self.window.bind("<space>", self.nextImage)
+        self.window.bind("<Return>", self.nextImage)
+        self.window.bind("<space>", self.nextBbox)
+
+        self.window.bind("<Right>", self.bboxTuner.lengthenBboxHorizontally)
+        self.window.bind("<Left>", self.bboxTuner.shortenBboxHorizontally)
+        self.window.bind("<Up>", self.bboxTuner.lengthenBboxVertically)
+        self.window.bind("<Down>", self.bboxTuner.shortenBboxVertically)
+
+        self.window.bind("<q>", self.bboxTuner.moveBboxLeft)
+        self.window.bind("<Q>", self.bboxTuner.moveBboxLeft)
+        self.window.bind("<d>", self.bboxTuner.moveBboxRight)
+        self.window.bind("<D>", self.bboxTuner.moveBboxRight)
+        self.window.bind("<z>", self.bboxTuner.moveBboxUp)
+        self.window.bind("<Z>", self.bboxTuner.moveBboxUp)
+        self.window.bind("<s>", self.bboxTuner.moveBboxDown)
+        self.window.bind("<S>", self.bboxTuner.moveBboxDown)
+
 
         """
         # Checkboxes
@@ -100,6 +121,11 @@ class DetectionLabellingInterface :
             self.canvas.create_line(p1[0], p1[1], p2[0], p2[1])
 
 
+    def nextBbox(self, event=None) :
+        self.bboxDisplay.moveToNextBbox()
+        self.bboxTuner.updateImage()
+        print("nexwt bbox")
+
     def previousImage(self, event=None) :
         return self.changeImageIndex(change=-1)
 
@@ -111,6 +137,7 @@ class DetectionLabellingInterface :
         self.imageDisplay.imageIndex.set(newIndex)
         self.imageDisplay.updateImageIndex()
         self.bboxDisplay.updateTable(self.imageDisplay.imagePath.get())
+        self.bboxTuner.updateImage()
 
     def saveBoxes(self, event=None) :
         self.bboxManager.saveToFolder(self.imageDisplay.folderPath.get())
