@@ -123,7 +123,10 @@ class ImageDisplay :
         try :
             index = max(0, self.imageIndex.get() - 1) # In case self.imageIndex is 0, we do not want the last image
             imagePath = self.imagePaths[index]
+            print("read img")
+            print("imagePath = ", imagePath)
             self.loadedImage = cv2.imread(imagePath)
+            print("Img read")
         except :
             print(f"[Warning] : Cannot read image '{imagePath}'")
 
@@ -193,7 +196,11 @@ class ImageDisplay :
         extensions = ["png", "jpg", "jpeg"]
         self.imagePaths = []
         for extension in extensions :
-            self.imagePaths.extend(list(glob.glob(f"{self.folderPath.get()}/*.{extension}")))
+            newImagePaths = glob.glob(f"{self.folderPath.get()}/**/*.{extension}", recursive=True)
+            newImagePaths = list(newImagePaths)
+            if (len(newImagePaths) > 0) :
+                print(newImagePaths[0])
+            self.imagePaths.extend(newImagePaths)
         self.imagePaths.sort()
         self.n_images = len(self.imagePaths)
         self.over.configure(text=f"/ {self.n_images}")

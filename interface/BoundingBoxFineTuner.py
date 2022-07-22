@@ -91,6 +91,8 @@ class BoundingBoxFineTuner :
 
 
     def updateImage(self) :
+        if (self.bboxDisplay.currentlyShownImagePath is None) :
+            return
         try :
             self.image = cv2.imread(self.bboxDisplay.currentlyShownImagePath)
         except :
@@ -142,6 +144,8 @@ class BoundingBoxFineTuner :
         self.canvas.create_rectangle(bboxLeftPixel_onScreen, bboxTopPixel_onScreen, bboxRightPixel_onScreen, bboxBottomPixel_onScreen, outline=color)
 
     def shortenBboxHorizontally(self, event=None) :
+        if not(self.bboxIsValid()) :
+            return
         bboxHorizontalRange = self.getBboxRight() - self.getBboxLeft()
         self.setBboxRight(max(0, self.getBboxRight() - self.bboxIncrement * bboxHorizontalRange))
         self.setBboxLeft(min(1, self.getBboxLeft() + self.bboxIncrement * bboxHorizontalRange))
@@ -151,6 +155,8 @@ class BoundingBoxFineTuner :
 
 
     def lengthenBboxHorizontally(self, event=None) :
+        if not(self.bboxIsValid()) :
+            return
         bboxHorizontalRange = self.getBboxRight() - self.getBboxLeft()
         self.setBboxRight(min(1, self.getBboxRight() + self.bboxIncrement * bboxHorizontalRange))
         self.setBboxLeft(max(0, self.getBboxLeft() - self.bboxIncrement * bboxHorizontalRange))
@@ -159,6 +165,8 @@ class BoundingBoxFineTuner :
         if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def shortenBboxVertically(self, event=None) :
+        if not(self.bboxIsValid()) :
+            return
         bboxVerticalRange = self.getBboxBottom() - self.getBboxTop()
         self.setBboxTop(min(1, self.getBboxTop() + self.bboxIncrement * bboxVerticalRange))
         self.setBboxBottom(max(0, self.getBboxBottom() - self.bboxIncrement * bboxVerticalRange))
@@ -167,6 +175,8 @@ class BoundingBoxFineTuner :
         if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def lengthenBboxVertically(self, event=None) :
+        if not(self.bboxIsValid()) :
+            return
         bboxVerticalRange = self.getBboxBottom() - self.getBboxTop()
         self.setBboxTop(max(0, self.getBboxTop() - self.bboxIncrement * bboxVerticalRange))
         self.setBboxBottom(min(1, self.getBboxBottom() + self.bboxIncrement * bboxVerticalRange))
@@ -175,6 +185,8 @@ class BoundingBoxFineTuner :
         if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def moveBboxUp(self, event=None) :
+        if not(self.bboxIsValid()) :
+            return
         bboxVerticalRange = self.getBboxBottom() - self.getBboxTop()
         self.setBboxTop(max(0, self.getBboxTop() - self.bboxIncrement * bboxVerticalRange))
         self.setBboxBottom(max(0, self.getBboxBottom() - self.bboxIncrement * bboxVerticalRange))
@@ -183,6 +195,8 @@ class BoundingBoxFineTuner :
         if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def moveBboxDown(self, event=None) :
+        if not(self.bboxIsValid()) :
+            return
         bboxVerticalRange = self.getBboxBottom() - self.getBboxTop()
         self.setBboxTop(min(1, self.getBboxTop() + self.bboxIncrement * bboxVerticalRange))
         self.setBboxBottom(min(1, self.getBboxBottom() + self.bboxIncrement * bboxVerticalRange))
@@ -191,6 +205,8 @@ class BoundingBoxFineTuner :
         if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def moveBboxLeft(self, event=None) :
+        if not(self.bboxIsValid()) :
+            return
         bboxHorizontalRange = self.getBboxRight() - self.getBboxLeft()
         self.setBboxRight(max(0, self.getBboxRight() - self.bboxIncrement * bboxHorizontalRange))
         self.setBboxLeft(max(0, self.getBboxLeft() - self.bboxIncrement * bboxHorizontalRange))
@@ -199,6 +215,8 @@ class BoundingBoxFineTuner :
         if (self.imageDisplay is not None) : self.imageDisplay.updateImage()
 
     def moveBboxRight(self, event=None) :
+        if not(self.bboxIsValid()) :
+            return
         bboxHorizontalRange = self.getBboxRight() - self.getBboxLeft()
         self.setBboxRight(min(1, self.getBboxRight() + self.bboxIncrement * bboxHorizontalRange))
         self.setBboxLeft(min(1, self.getBboxLeft() + self.bboxIncrement * bboxHorizontalRange))
