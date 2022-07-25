@@ -66,6 +66,10 @@ class BoundingBoxFineTuner :
 
         self.canvas.pack(pady=10)
 
+        self.loadedImage_backup = None
+        self.loadedImage_backupPath = ""
+
+
     def getBbox(self) :
         i_bbox = self.bboxDisplay.i_selectedBbox
         if (i_bbox is None) :
@@ -91,10 +95,15 @@ class BoundingBoxFineTuner :
 
 
     def updateImage(self) :
-        if (self.bboxDisplay.currentlyShownImagePath is None) :
+        imagePath = self.bboxDisplay.currentlyShownImagePath
+        if (imagePath is None) :
             return
         try :
-            self.image = cv2.imread(self.bboxDisplay.currentlyShownImagePath)
+            if (self.loadedImage_backupPath != imagePath) :
+                print("load new image")
+                self.loadedImage_backup = cv2.imread(imagePath)
+                self.loadedImage_backupPath = imagePath
+            self.image = self.loadedImage_backup
         except :
             print(f"[Warning] : Cannot read image '{imagePath}'")
             return

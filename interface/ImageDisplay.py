@@ -92,6 +92,8 @@ class ImageDisplay :
         self.bboxWannabe_2 = None
 
         self.loadedImage = None
+        self.loadedImage_backup = None
+        self.loadedImage_backupPath = ""
 
         self.boundingBoxesReferences = []
 
@@ -123,10 +125,12 @@ class ImageDisplay :
         try :
             index = max(0, self.imageIndex.get() - 1) # In case self.imageIndex is 0, we do not want the last image
             imagePath = self.imagePaths[index]
-            print("read img")
-            print("imagePath = ", imagePath)
-            self.loadedImage = cv2.imread(imagePath)
-            print("Img read")
+            if (self.loadedImage_backupPath != imagePath) :
+                print("load new image")
+                self.loadedImage_backup = cv2.imread(imagePath)
+                self.loadedImage_backupPath = imagePath
+            self.loadedImage = self.loadedImage_backup
+
         except :
             print(f"[Warning] : Cannot read image '{imagePath}'")
 
