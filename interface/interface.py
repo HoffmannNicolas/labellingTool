@@ -16,11 +16,12 @@ class DetectionLabellingInterface :
 
     """ Labelling interface dedicated to detection, allows to draw labeled bounding boxes around objects in an image """
 
-    def __init__(self, window, width=1300, height=800) :
+    def __init__(self, window, width=1300, height=800, margin=5) :
 
         self.window = window
         self.width = width
         self.height = height
+        self.margin = margin
         self.frame = Frame(window)
         self.frame.pack()
         self.canvas = Canvas(self.frame, width=self.width, height=self.height)
@@ -28,47 +29,67 @@ class DetectionLabellingInterface :
         self.canvas.pack()
 
         self.categoryManager = CategoryManager()
-        self.categoryDisplay = CategoryDisplay(self.frame, self.categoryManager)
+        self.categoryDisplay = CategoryDisplay(
+            self.frame,
+            self.categoryManager
+        )
 
         self.bboxManager = BoundingBoxManager()
-        self.bboxDisplay = BoundingBoxDisplay(self.frame, self.bboxManager)
-        self.bboxTuner = BoundingBoxFineTuner(self.frame, self.bboxDisplay)
+        self.bboxDisplay = BoundingBoxDisplay(
+            self.frame,
+            self.bboxManager
+        )
+        self.bboxTuner = BoundingBoxFineTuner(
+            self.frame,
+            self.bboxDisplay,
+            displayWidth=0.3*self.width-2*self.margin,
+            displayHeight=0.4*self.height-2*self.margin
+        )
         self.bboxDisplay.bboxTuner = self.bboxTuner
         # bboxDisplay.updateTable("imagePath")
 
-        self.imageDisplay = ImageDisplay(self.frame, self.bboxManager, self.bboxDisplay, self.categoryManager, self.categoryDisplay, bboxTuner=self.bboxTuner)
+        self.imageDisplay = ImageDisplay(
+            self.frame,
+            self.bboxManager,
+            self.bboxDisplay,
+            self.categoryManager,
+            self.categoryDisplay,
+            bboxTuner=self.bboxTuner,
+            displayWidth=0.5*self.width-2*self.margin,
+            displayHeight=self.height-2*self.margin
+        )
         self.bboxTuner.imageDisplay = self.imageDisplay
 
-        self.categoryDisplay.frame.place(x=3, y=3)
-        self.imageDisplay.frame.place(x=300, y=3)
-        self.bboxDisplay.frame.place(x=1050, y=3)
-        self.bboxTuner.frame.place(x=1050, y=370)
+        self.categoryDisplay.frame.place(x=self.margin, y=self.margin)
+        self.imageDisplay.frame.place(x=int(0.2*width+self.margin), y=self.margin)
+        self.bboxDisplay.frame.place(x=int(0.8*width+self.margin), y=self.margin)
+        self.bboxTuner.frame.place(x=int(0.7*width+self.margin), y=int(0.6*height+self.margin))
 
         self.saveBoxesButton = tk.Button(self.frame, text="S[a]ve Boxes", width=10, command=self.saveBoxes)
         self.saveBoxesButton.pack()
-        self.saveBoxesButton.place(x=300, y=750)
+        self.saveBoxesButton.place(x=int(0.05*self.width), y=int(0.9*self.height), anchor="center")
 
         self.undoButton = tk.Button(self.frame, text="[U]ndo", width=10, command=self.undo)
         self.undoButton.pack()
-        self.undoButton.place(x=200, y=750)
+        self.undoButton.place(x=0.15* self.width, y=0.9*self.height, anchor="center")
 
-        self.previousImage_x = 150
-        self.previousImage_h = 400
+        self.exitButton = tk.Button(self.frame, text='close window', width=10, command=window.destroy)
+        self.exitButton.pack()
+        self.exitButton.place(x=0.05* self.width, y=0.95*self.height, anchor="center")
+
+        self.previousImage_x = int(0.1*self.width)
+        self.previousImage_h = int(0.5*self.height)
         self.previousImageButton = tk.Button(self.frame, text="Previous Image", width=11, command=self.previousImage)
         self.previousImageButton.pack()
         self.previousImageButton.place(x=self.previousImage_x, y=self.previousImage_h, anchor="center")
         self.drawArrow([self.previousImage_x + 50, self.previousImage_h], [self.previousImage_x - 50, self.previousImage_h])
 
-        self.nextImage_x = 1200
-        self.nextImage_h = 300
-        self.nextImageButton = tk.Button(self.frame, text="Next Image\n[Space]", width=11, command=self.nextImage)
+        self.nextImage_x = int(0.9*self.width)
+        self.nextImage_h = int(0.5*self.height)
+        self.nextImageButton = tk.Button(self.frame, text="Next Image\n[Return]", width=11, command=self.nextImage)
         self.nextImageButton.pack()
         self.nextImageButton.place(x=self.nextImage_x, y=self.nextImage_h, anchor="center")
         self.drawArrow([self.nextImage_x - 50, self.nextImage_h], [self.nextImage_x + 50, self.nextImage_h])
-
-        self.exitButton = tk.Button(self.frame, text='close window', width=10, command=window.destroy)
-        self.exitButton.pack()
-        self.exitButton.place(x=800, y=750)
 
         self.window.bind("<a>", self.saveBoxes)
         self.window.bind("<u>", self.undo)
@@ -88,7 +109,6 @@ class DetectionLabellingInterface :
         self.window.bind("<Z>", self.bboxTuner.moveBboxUp)
         self.window.bind("<s>", self.bboxTuner.moveBboxDown)
         self.window.bind("<S>", self.bboxTuner.moveBboxDown)
-
 
         """
         # Checkboxes
@@ -154,8 +174,8 @@ if __name__ == "__main__" :
 
     window = tk.Tk()
     window.title("Detector")
-    w = 1600
-    h = 800
+    w = 1760
+    h = 830
     window.geometry(f"{w}x{h}")
 
     detectionLabellingInterface = DetectionLabellingInterface(window, width=w, height=h)

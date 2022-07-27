@@ -64,7 +64,7 @@ class BoundingBoxFineTuner :
 
         self.bbox = None
 
-        self.canvas.pack(pady=10)
+        self.canvas.pack()
 
         self.loadedImage_backup = None
         self.loadedImage_backupPath = ""
@@ -127,7 +127,7 @@ class BoundingBoxFineTuner :
         imageTopPixel = int(imageTopPercentage * imageHeight)
 
         self.image = self.image[imageTopPixel:imageBottomPixel, imageLeftPixel:imageRightPixel]
-        self.image = cv2.resize(self.image, [self.displayWidth-2, self.displayHeight-2], interpolation = cv2.INTER_AREA)
+        self.image = cv2.resize(self.image, [int(self.displayWidth-2), int(self.displayHeight-2)], interpolation = cv2.INTER_AREA)
 
         # Display image at proper position
         self.image = ImageTk.PhotoImage(image=Image.fromarray(self.image))

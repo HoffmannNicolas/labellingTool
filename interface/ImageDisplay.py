@@ -7,6 +7,7 @@ import cv2
 from PIL import Image, ImageTk
 import math
 import csv
+import gc
 
 import os
 import numpy as np
@@ -86,7 +87,7 @@ class ImageDisplay :
         self.imageArea = self.canvas.create_rectangle(0, self.topHeightMargin, self.imageWidth, self.displayHeight - self.bottomHeightMargin, outline="black",fill="black")
         self.updateImage()
 
-        self.canvas.pack(pady=10)
+        self.canvas.pack()
 
         self.bboxWannabe_1 = None # Draw bbox being created
         self.bboxWannabe_2 = None
@@ -117,6 +118,7 @@ class ImageDisplay :
         self.updateImage()
 
     def updateImage(self) :
+        gc.collect()
         self.window.focus()
         # Load image
         if (self.n_images <= 0) :
@@ -148,7 +150,7 @@ class ImageDisplay :
             ratio = min(w_ratio, h_ratio)
             newWidth = int(width * ratio)
             newHeight = int(height * ratio)
-        self.loadedImage = cv2.resize(self.loadedImage, [newWidth, newHeight], interpolation = cv2.INTER_AREA)
+        self.loadedImage = cv2.resize(self.loadedImage, [int(newWidth), int(newHeight)], interpolation = cv2.INTER_AREA)
 
         # Display image at proper position
         self.image = ImageTk.PhotoImage(image=Image.fromarray(self.loadedImage))
